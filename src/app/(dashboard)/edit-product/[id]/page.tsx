@@ -109,7 +109,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
         if (file) {
             const url = URL.createObjectURL(file);
             setPreviewUrl(url);
-            setValue("files", event.target.files!, { shouldValidate: true }); // <- Aqui é o ouro
+            setValue("files", event.target.files, { shouldValidate: true }); // <- Aqui é o ouro
             trigger("files"); // <- Garante que o campo seja validado
         }
     }
@@ -119,7 +119,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
             const newImage = data.files?.[0];
             const attachamentsId = productRecovered?.product.attachments[0]?.id;
 
-            editProductFn({
+            const response = editProductFn({
                 id: data.id,
                 title: data.title,
                 description: data.description,

@@ -31,6 +31,7 @@ export async function editProduct({
             const uploadResponse: UploadResponse = await api.post("/attachments", formData);
             const { id: photoId } = uploadResponse.data.attachments[0];
             finalAttachmentId = photoId;
+            console.log("MERDA" + finalAttachmentId);
         }
 
         const response = await api.put(`/products/${id}`, {
@@ -41,7 +42,9 @@ export async function editProduct({
             attachmentsIds: [finalAttachmentId],
         });
 
-        return response;
+        if (response.status !== 200) {
+            throw new Error(response.data);
+        }
     } catch (err: unknown) {
         console.error("Erro ao editar produto:", err);
         throw err;
