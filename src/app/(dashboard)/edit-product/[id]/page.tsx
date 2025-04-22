@@ -32,32 +32,25 @@ const ProductFormSchema = z.object({
     category: z.string().min(1, "Categoria é obrigatória"),
     status: z.boolean(),
     attachmentsId: z.string().optional(), // já existe imagem?
-    files: z
-        .any()
-        .optional(), // a validação de obrigatoriedade vai vir depois com refine
-}).refine((data) => {
-    // Se não tem imagem antiga, então `files` precisa ter pelo menos um arquivo
-    if (!data.attachmentsId && (!data.files || data.files.length === 0)) {
-        return false;
-    }
-    return true;
-}, {
-    message: "A imagem do produto é obrigatória",
-    path: ["files"], // Aponta o erro pro campo certo
-});
+    });
 
 export type ProductFormType = z.infer<typeof ProductFormSchema>;
 
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"]; //array com os tipos que o zod vai aceitar no file
 
-const imageUploadSchema = z.object({ //schema pro zod no preview da imagem
-    files: z.custom<File>()
-        .refine((file => ACCEPTED_IMAGE_TYPES.includes(file.type)), "Tipo de arquivo precisa ser uma imagem PNG/JPEG/JPG/WEBP.")
+const imageUploadSchema = z.object({ //schema pro zod
+    file: z.custom<FileList>()
+        .refine((files) => Array.from(files ?? []).length !== 0, "A imagem do profile é obrigatória")
+        .refine((files) => Array.from(files ?? []).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)), "Tipo de arquivo precisa ser uma imagem PNG/JPEG/JPG/WEBP.")
 });
+
+export type photoType = z.infer<typeof imageUploadSchema>;
 
 export default function EditProduct({ params }: DynamicRouteProps) {
 
     const resolvedParams = use(params); // <--- aqui está a mágica, aceita mesmo em um client component aguardar a que a promise seja resolvida - params na rota é uma promise (isso é um ajeito do next) - poderiamos também criar um client component com o cerne da pagina, deixar este page.tsx como server async, e aí chamavamos o client component criado passando o params, que poderá ser recebido da forma tradicional, sem este Promise como está ali na tipagem; vou deixar assim para aprender e ter como base mais uma situçaõ no next;
+
+    const [photoFileList, setPhotoFileList] = useState<FileList>();
 
     const router = useRouter()
 
@@ -69,7 +62,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
     })
 
     const { mutateAsync: editProductFn } = useMutation({
-        mutationKey: ["productRecovered?.product.id"],
+        mutationKey: ["editProduct"],
         mutationFn: editProduct,
     })
 
@@ -78,8 +71,6 @@ export default function EditProduct({ params }: DynamicRouteProps) {
         handleSubmit,
         control,
         reset,
-        setValue,
-        trigger,
         formState: { isSubmitting, errors },
     } = useForm<ProductFormType>({
         resolver: zodResolver(ProductFormSchema),
@@ -98,36 +89,32 @@ export default function EditProduct({ params }: DynamicRouteProps) {
         router.back()
     }
 
-    function handlePreLoadImage(event: React.ChangeEvent<HTMLInputElement>) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
-        const file = event.target.files?.[0];
-        const result = imageUploadSchema.safeParse({ files: file });
-
-        if (!result.success) { //verificando se o zod validou, caso não ele entra na função
+    function handlePreLoadImage(files: FileList) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
+        const result = imageUploadSchema.safeParse({ file: files });
+        
+        if (!result.success) {
             toast.error(result.error.errors[0].message);
             return;
         }
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setPreviewUrl(url);
-            setValue("files", event.target.files, { shouldValidate: true }); // <- Aqui é o ouro
-            trigger("files"); // <- Garante que o campo seja validado
-        }
+        setPhotoFileList(result.data.file); //aqui é o FileList
+        const url = URL.createObjectURL(result.data.file[0]); //aqui é o File do FileList que é necessario pra carregar o object url
+        setPreviewUrl(url); //pra atualizar a imagem do produto    
     }
 
     function handleEditProduct(data: ProductFormType) {
         try {
-            const newImage = data.files?.[0];
-            const attachamentsId = productRecovered?.product.attachments[0]?.id;
+            const newImage = photoFileList; //blob com foto - aqui já está o result.data.file[0]
+            const attachamentsId = productRecovered?.product.attachments[0]?.id; //id que ja existia da imagem
 
-            const response = editProductFn({
+            editProductFn({
                 id: data.id,
                 title: data.title,
                 description: data.description,
                 priceInCents: data.priceInCents,
                 category: data.category,
                 status: data.status,
-                attachmentsId: newImage ? undefined : attachamentsId,
-                files: newImage ? data.files : undefined,
+                attachmentsId: newImage ? undefined : attachamentsId, //se tiver imagem nova, ele fica undefined pois o attachment id será outro; caso contrario, ele mantem e sobe este novamente pro backend
+                files: photoFileList
             });
 
             toast.success("Produto editado com sucesso!");
@@ -159,10 +146,10 @@ export default function EditProduct({ params }: DynamicRouteProps) {
         if (errors.id) {
             toast.error("Erro no id" + errors.id.message);
         }
-        if (errors.files) {
-            toast.error("Erro no files" + errors.files.message);
-        }
-    }, [errors.attachmentsId, errors.category, errors.description, errors.priceInCents, errors.status, errors.title, errors.id, errors.files]);
+        // if (errors.) {
+        //     toast.error("Erro no files" + errors.files.message);
+        // }
+    }, [errors.attachmentsId, errors.category, errors.description, errors.priceInCents, errors.status, errors.title, errors.id]);
 
     useEffect(() => {
         if (productRecovered?.product) { //é preciso pois useQuery é assincrono e o defaultValues do useForm é carregado no momento da renderização; como o useQuery é assincrono podemos não ter o valor naquele dado momento
@@ -174,13 +161,12 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                 priceInCents: String(productRecovered.product.priceInCents),
                 status: Boolean(productRecovered.product.status),
                 title: productRecovered.product.title,
-                files: {} as FileList, // <- se necessário
+                // files: {} as FileList, // <- se necessário
             });
         }
 
         // 🔥 Força nova validação
-        trigger();
-    }, [productRecovered, reset, trigger]);
+    }, [productRecovered, reset]);
 
     return (
         <div className="flex flex-col flex-1 mx-42 gap-10 mt-16">
@@ -226,12 +212,11 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                             )
                     }
                     <input
-                        {...register("files")}
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/webp"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         onChange={(e) => {
-                            if (e.target.files) handlePreLoadImage(e);
+                            if (e.target.files) handlePreLoadImage(e.target.files);
                         }}
                     />
 

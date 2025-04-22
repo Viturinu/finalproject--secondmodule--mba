@@ -52,7 +52,7 @@ export default function MyProduct() {
                     <div className="grid grid-cols-2 gap-5">
                         {
                             getMyFilteredProductsResponse?.products.map(item => (
-                                <ProductCard key={item.id} name={item.title} price={item.priceInCents} imageSrc={item.attachments[0].url} description={item.description}
+                                <ProductCard key={item.id} name={item.title} price={item.priceInCents} imageSrc={item.attachments[0].url} description={item.description} category={item.category.slug} status={item.status}
                                     onClick={() => handleGetIntoAProduct(item.id)} />)
                             )
                         }

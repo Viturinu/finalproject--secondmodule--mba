@@ -46,7 +46,7 @@ export function UploadImage({ onUploaded }: UploadImageProps) {
         }
 
         const formData = new FormData(); //criando o Form aqui
-        formData.append("files", result.data.file[0]);// files[0] pode ser usado também; aqui está criando o input do form aqui também, e definindo a imagem selecionada pelo usuario
+        formData.append("files", result.data.file[0]);// file[0] pode ser usado também; aqui está criando o input do form aqui também, e definindo a imagem selecionada pelo usuario
 
         try {
             const response: UploadResponse = await api.post("/attachments", formData);
