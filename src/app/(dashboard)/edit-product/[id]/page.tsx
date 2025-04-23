@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { editProduct } from "@/app/api/edit-product";
 import Image from "next/image";
+import { formatToBRL } from "@/utils/format-brl-price";
 
 interface DynamicRouteProps {
     params: Promise<{ id: string }>;
@@ -29,10 +30,10 @@ const ProductFormSchema = z.object({
     title: z.string().min(1, "Título é obrigatório"),
     description: z.string().min(1, "Descrição é obrigatória"),
     priceInCents: z.string().min(1, "Preço é obrigatório"),
-    category: z.string().min(1, "Categoria é obrigatória"),
-    status: z.boolean(),
+    category: z.string(),
+    status: z.string().nullable(),
     attachmentsId: z.string().optional(), // já existe imagem?
-    });
+});
 
 export type ProductFormType = z.infer<typeof ProductFormSchema>;
 
@@ -52,9 +53,9 @@ export default function EditProduct({ params }: DynamicRouteProps) {
 
     const [photoFileList, setPhotoFileList] = useState<FileList>();
 
-    const router = useRouter()
-
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    const router = useRouter();
 
     const { data: productRecovered } = useQuery<GetProductByIdResponse>({
         queryKey: ["product-recovered"],
@@ -79,8 +80,8 @@ export default function EditProduct({ params }: DynamicRouteProps) {
             attachmentsId: productRecovered?.product.attachments?.[0]?.id ?? undefined, // isso que permite a validação funcionar!
             category: productRecovered?.product.category.id,
             description: productRecovered?.product.description,
-            priceInCents: String(productRecovered?.product.priceInCents),
-            status: Boolean(productRecovered?.product.status),
+            priceInCents: productRecovered?.product.priceInCents ? formatToBRL(productRecovered?.product.priceInCents) : String(productRecovered?.product.priceInCents),
+            status: productRecovered?.product.status,
             title: productRecovered?.product.title
         }
     });
@@ -91,7 +92,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
 
     function handlePreLoadImage(files: FileList) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
         const result = imageUploadSchema.safeParse({ file: files });
-        
+
         if (!result.success) {
             toast.error(result.error.errors[0].message);
             return;
@@ -103,14 +104,14 @@ export default function EditProduct({ params }: DynamicRouteProps) {
 
     function handleEditProduct(data: ProductFormType) {
         try {
-            const newImage = photoFileList; //blob com foto - aqui já está o result.data.file[0]
+            const newImage = photoFileList; //FileList do input que veio do estado criado pra armazenar esse estado
             const attachamentsId = productRecovered?.product.attachments[0]?.id; //id que ja existia da imagem
 
             editProductFn({
                 id: data.id,
                 title: data.title,
                 description: data.description,
-                priceInCents: data.priceInCents,
+                priceInCents: formatToBRL(data.priceInCents),
                 category: data.category,
                 status: data.status,
                 attachmentsId: newImage ? undefined : attachamentsId, //se tiver imagem nova, ele fica undefined pois o attachment id será outro; caso contrario, ele mantem e sobe este novamente pro backend
@@ -158,14 +159,13 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                 attachmentsId: productRecovered.product.attachments[0].id,
                 category: productRecovered.product.category.id,
                 description: productRecovered.product.description,
-                priceInCents: String(productRecovered.product.priceInCents),
-                status: Boolean(productRecovered.product.status),
+                priceInCents: formatToBRL(productRecovered.product.priceInCents),
+                status: productRecovered.product.status,
                 title: productRecovered.product.title,
                 // files: {} as FileList, // <- se necessário
             });
         }
 
-        // 🔥 Força nova validação
     }, [productRecovered, reset]);
 
     return (
@@ -185,15 +185,16 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                     name="status"
                     render={({ field }) => (
                         <div className="flex gap-3 mr-4 items-end">
-                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) cursor-pointer ${field.value ? "opacity-100" : "opacity-70"}`} onClick={() => field.onChange(!field.value)}>
+                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "cancelled" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => field.onChange(field.value === "available" ? field.value = "sold" : field.value === "sold" ? field.value = "available" : field.value = "cancelled")}>
                                 <HugeiconsIcon icon={Tick02Icon} width={20} height={20} className="text-orange-base" />
-                                {!field.value ? "Marcar como disponível" : "Marcar como vendido"}
+                                {field.value === "sold" ? "Marcar como disponível" : "Marcar como vendido"}
                             </div>
-                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) cursor-pointer ${field.value ? "opacity-70" : "opacity-100"}`} onClick={() => field.onChange(!field.value)}>
+                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "sold" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => field.onChange(field.value === "available" ? field.value = "cancelled" : field.value === "cancelled" ? field.value = "available" : field.value)}>
                                 <HugeiconsIcon icon={UnavailableIcon} width={20} height={20} className="text-orange-base" />
-                                {field.value ? 'Desativar anúncio' : 'Ativar anuncio'}
+                                {field.value === "cancelled" ? 'Ativar anuncio' : 'Desativar anúncio'}
                             </div>
                         </div>
+
                     )}
                 />
             </div>
@@ -219,7 +220,6 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                             if (e.target.files) handlePreLoadImage(e.target.files);
                         }}
                     />
-
                 </div>
                 <div className="flex flex-col flex-1 p-8 bg-white rounded-3xl">
                     <h2 className="font-(family-name:--font-poppins-sans) text-gray-600 font-semibold">Dados do produto</h2>
@@ -234,7 +234,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                                 <label htmlFor="title" className="font-(family-name:--font-poppins-sans) font-semibold text-gray-500 text-xs">VALOR</label>
                                 <div className="flex gap-2 items-center">
                                     <span>R$</span>
-                                    <input type="number" className="font-(family-name:--font-poppins-sans) outline-0 h-12" {...register("priceInCents")} />
+                                    <input type="text" className="font-(family-name:--font-poppins-sans) outline-0 h-12" {...register("priceInCents")} />
                                 </div>
                             </div>
                         </div>
@@ -254,7 +254,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
-                                    <SelectCategory id={field.value} onChange={field.onChange} />
+                                    <SelectCategory id={field.value} onChange={field.onChange} className="outline-0" />
                                 )}
                             />
                         </div>

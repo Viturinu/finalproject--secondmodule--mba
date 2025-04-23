@@ -6,7 +6,7 @@ export interface GetProductByIdResponse {
         title: string;
         description: string;
         priceInCents: number;
-        status: boolean;
+        status: string;
         owner: {
             id: string;
             name: string;

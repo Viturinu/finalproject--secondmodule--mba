@@ -31,14 +31,14 @@ export async function editProduct({
 
         if (files) {
             const formData = new FormData();
-            formData.append("files", files[0]); //files é só o nome por conta do schema, mas na verdade ele é um file já; recuperamos o files?.[0] lá atras, logo não tem mais array FileList, agora é um só file, mas com nome files do schema; aqui já está result.data.file[0]
+            formData.append("files", files[0]);
 
             const uploadResponse = await api.post("/attachments", formData);
             const { id : photoId } = uploadResponse.data.attachments[0]; //esse array vem do backend assim que subimos um novo arquivo (attachment)
 
             finalAttachmentId = photoId; //com o novo id
         }
-
+        
         const response = await api.put(`/products/${id}`, {
             title,
             categoryId: category,

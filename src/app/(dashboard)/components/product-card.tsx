@@ -1,5 +1,6 @@
+import { NoteEditIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
-import { categoryItem } from "../edit-product/[id]/page";
 
 interface ProductCardProps extends React.HTMLAttributes<HTMLDivElement> {
     name: string;
@@ -10,15 +11,20 @@ interface ProductCardProps extends React.HTMLAttributes<HTMLDivElement> {
     status: string;
 }
 
-export function ProductCard({ name, imageSrc, price, description, category, status,...rest }: ProductCardProps) {
+export function ProductCard({ name, imageSrc, price, description, category, status, ...rest }: ProductCardProps) {
 
     return (
         <div className="flex flex-col flex-1 gap-1 bg-white rounded-3xl hover:outline-2 outline-blue-500 cursor-pointer"  {...rest}>
             <div className="relative h-60 p-2 rounded-3xl overflow-hidden object-cover">
-                <Image src={imageSrc} alt={`Imagem do produto ${name}`} fill className="p-1 rounded-3xl" />
+                {imageSrc ?
+                    <Image src={imageSrc} alt={`Imagem do produto ${name}`} fill className="p-1 rounded-3xl" />
+                    : <div className="flex flex-1 p-1 rounded-3xl bg-gray-400">
+                        <HugeiconsIcon icon={NoteEditIcon} width={42} height={42} className="text-orange-base" />
+                    </div>}
+
                 <div className="flex absolute right-6 top-6 z-1 gap-2">
-                    <span className={`flex rounded-3xl font-semibold font-(family-name:--font-dm-sans) text-white ${status === "sold" ? "bg-green-600" : status === "cancelled" ? "bg-gray-600" : "bg-blue-dark"}  items-center justify-center h-8  w-24 text-sm`}>{status.toUpperCase()}</span>
-                    <span className="flex rounded-3xl font-semibold font-(family-name:--font-dm-sans) text-white bg-gray-600 items-center justify-center h-8  w-24 text-sm">MÓVEL</span>
+                    <span className={`flex rounded-3xl font-semibold font-(family-name:--font-dm-sans) text-white ${status === "sold" ? "bg-green-600" : status === "cancelled" ? "bg-gray-600" : "bg-blue-dark"}  items-center justify-center h-8 px-2 text-sm`}>{status === "sold" ? "VENDIDO" : status === "available" ? "DISPONÍVEL" : "DESATIVADO"}</span>
+                    <span className="flex rounded-3xl font-semibold font-(family-name:--font-dm-sans) text-white bg-gray-600 items-center justify-center h-8 w-full px-2 text-sm">{category.toUpperCase()}</span>
                 </div>
             </div>
             <div className="flex flex-col gap-2 p-3">
