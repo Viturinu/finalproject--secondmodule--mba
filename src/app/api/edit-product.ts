@@ -1,8 +1,9 @@
+import { parseFromBRL } from "@/utils/unformat-brl-price";
 import { ProductFormType } from "../(dashboard)/edit-product/[id]/page";
 import { api } from "../lib/api";
 
-interface ProductFormTypeBranch extends ProductFormType{
-    files:FileList|undefined;
+interface ProductFormTypeBranch extends ProductFormType {
+    files: FileList | undefined;
 }
 
 interface UploadResponse {
@@ -25,7 +26,7 @@ export async function editProduct({
     category,
     files
 }: ProductFormTypeBranch,
- ) {
+) {
     try {
         let finalAttachmentId = attachmentsId; //aqui ele já fica com o antigo, caso entrar no if posterior, ele vai ser atribuido pra nova imagem
 
@@ -34,22 +35,19 @@ export async function editProduct({
             formData.append("files", files[0]);
 
             const uploadResponse = await api.post("/attachments", formData);
-            const { id : photoId } = uploadResponse.data.attachments[0]; //esse array vem do backend assim que subimos um novo arquivo (attachment)
+            const { id: photoId } = uploadResponse.data.attachments[0]; //esse array vem do backend assim que subimos um novo arquivo (attachment)
 
             finalAttachmentId = photoId; //com o novo id
         }
-        
-        const response = await api.put(`/products/${id}`, {
+
+        await api.put(`/products/${id}`, {
             title,
             categoryId: category,
             description,
-            priceInCents,
+            priceInCents: parseFromBRL(priceInCents),
             attachmentsIds: [finalAttachmentId],
         });
 
-        if (response.status !== 200) {
-            throw new Error(response.data);
-        }
     } catch (err: unknown) {
         console.error("Erro ao editar produto:", err);
         throw err;

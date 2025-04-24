@@ -1,7 +1,7 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Tick02Icon, UnavailableIcon, ImageUpload01Icon } from "@hugeicons/core-free-icons";
+import { ImageUpload01Icon } from "@hugeicons/core-free-icons";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from "react-hook-form";
@@ -20,25 +20,20 @@ export interface categoryItem {
     slug: string;
 }
 
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"]; //array com os tipos que o zod vai aceitar no file
+
 const ProductFormSchema = z.object({
     title: z.string().min(1, "Título é obrigatório"),
     description: z.string().min(1, "Descrição é obrigatória"),
     priceInCents: z.string().min(1, "Preço é obrigatório"),
     category: z.string(),
     status: z.string(),
+    files: z.custom<FileList>()
+        .refine((files) => Array.from(files ?? []).length !== 0, "A imagem do profile é obrigatória")
+        .refine((files) => Array.from(files ?? []).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)), "Tipo de arquivo precisa ser uma imagem PNG/JPEG/JPG/WEBP."),
 });
 
 export type CreateProductFormType = z.infer<typeof ProductFormSchema>;
-
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"]; //array com os tipos que o zod vai aceitar no file
-
-const imageUploadSchema = z.object({ //schema pro zod
-    file: z.custom<FileList>()
-        .refine((files) => Array.from(files ?? []).length !== 0, "A imagem do profile é obrigatória")
-        .refine((files) => Array.from(files ?? []).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)), "Tipo de arquivo precisa ser uma imagem PNG/JPEG/JPG/WEBP.")
-});
-
-export type photoType = z.infer<typeof imageUploadSchema>;
 
 export default function CreateProduct() {
 
@@ -79,14 +74,7 @@ export default function CreateProduct() {
     }
 
     function handlePreLoadImage(files: FileList) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
-        const result = imageUploadSchema.safeParse({ file: files });
-
-        if (!result.success) {
-            toast.error(result.error.errors[0].message);
-            return;
-        }
-        setPhotoFileList(result.data.file); //aqui é o FileList
-        const url = URL.createObjectURL(result.data.file[0]); //aqui é o File do FileList que é necessario pra carregar o object url
+        const url = URL.createObjectURL(files[0]); //aqui é o File do FileList que é necessario pra carregar o object url
         setPreviewUrl(url); //pra atualizar a imagem do produto    
     }
 
@@ -98,7 +86,7 @@ export default function CreateProduct() {
                 priceInCents: formatToBRL(data.priceInCents),
                 category: data.category,
                 status: data.status,
-                files: photoFileList
+                files: data.files,
             });
 
             toast.success("Produto criado com sucesso!");
@@ -124,10 +112,13 @@ export default function CreateProduct() {
         if (errors.title) {
             toast.error("Erro no titulo");
         }
+        if (errors.files) {
+            toast.error(errors.files.message);
+        }
         // if (errors.) {
         //     toast.error("Erro no files" + errors.files.message);
         // }
-    }, [errors.category, errors.description, errors.priceInCents, errors.status, errors.title]);
+    }, [errors.category, errors.description, errors.priceInCents, errors.status, errors.title, errors.files]);
 
     return (
         <div className="flex flex-col flex-1 mx-42 gap-10 mt-16">
@@ -155,6 +146,7 @@ export default function CreateProduct() {
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/webp"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        {...register("files")}
                         onChange={(e) => {
                             if (e.target.files) handlePreLoadImage(e.target.files);
                         }}
@@ -193,7 +185,7 @@ export default function CreateProduct() {
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
-                                    <SelectCategory id={field.value} onChange={field.onChange} className="outline-0" />
+                                    <SelectCategory id={field.value} onChange={field.onChange} />
                                 )}
                             />
                         </div>

@@ -72,6 +72,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
         handleSubmit,
         control,
         reset,
+        setValue,
         formState: { isSubmitting, errors },
     } = useForm<ProductFormType>({
         resolver: zodResolver(ProductFormSchema),
@@ -88,6 +89,14 @@ export default function EditProduct({ params }: DynamicRouteProps) {
 
     function handleNavigateBack() {
         router.back()
+    }
+
+    function handleCurrencyChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const raw = e.target.value.replace(/\D/g, ""); // Remove tudo que não for número
+        const numeric = Number(raw) / 100;              // Divide por 100 para obter valor com centavos
+        const formatted = formatToBRL(numeric);         // Formata para BRL
+
+        setValue("priceInCents", formatted);
     }
 
     function handlePreLoadImage(files: FileList) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
@@ -234,7 +243,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                                 <label htmlFor="title" className="font-(family-name:--font-poppins-sans) font-semibold text-gray-500 text-xs">VALOR</label>
                                 <div className="flex gap-2 items-center">
                                     <span>R$</span>
-                                    <input type="text" className="font-(family-name:--font-poppins-sans) outline-0 h-12" {...register("priceInCents")} />
+                                    <input type="text" className="font-(family-name:--font-poppins-sans) outline-0 h-12" {...register("priceInCents")} onChange={handleCurrencyChange} />
                                 </div>
                             </div>
                         </div>
@@ -254,7 +263,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
-                                    <SelectCategory id={field.value} onChange={field.onChange} className="outline-0" />
+                                    <SelectCategory id={field.value} onChange={field.onChange} />
                                 )}
                             />
                         </div>

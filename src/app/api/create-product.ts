@@ -1,9 +1,6 @@
-import { CreateProductFormType } from "../(dashboard)/create-product/page";
+import { parseFromBRL } from "@/utils/unformat-brl-price";
 import { api } from "../lib/api";
-
-interface CreateProductFormTypeBranch extends CreateProductFormType {
-    files: FileList | undefined;
-}
+import { CreateProductFormType } from "../(dashboard)/create-product/page";
 
 interface UploadResponse {
     data: {
@@ -22,7 +19,7 @@ export async function createProduct({
     priceInCents,
     category,
     files
-}: CreateProductFormTypeBranch,
+}: CreateProductFormType,
 ) {
     try {
         let photoId; //só pra atribuir dentro da condicional, senão não enxergo ela no response;
@@ -35,20 +32,16 @@ export async function createProduct({
             const { id } = uploadResponse.data.attachments[0]; //esse array vem do backend assim que subimos um novo arquivo (attachment)
             photoId = id;
         }
-
-        const response = await api.post(`/products`, {
+        await api.post("/products", {
             title,
             categoryId: category,
             description,
-            priceInCents,
+            priceInCents: parseFromBRL(priceInCents),
             attachmentsIds: [files ? photoId : null],
         });
 
-        if (response.status !== 200) {
-            throw new Error(response.data);
-        }
     } catch (err: unknown) {
-        console.error("Erro ao editar produto:", err);
+        console.error("Erro ao criar produto:", err);
         throw err;
     }
 }
