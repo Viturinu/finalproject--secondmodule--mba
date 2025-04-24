@@ -53,6 +53,8 @@ export default function EditProduct({ params }: DynamicRouteProps) {
 
     const [photoFileList, setPhotoFileList] = useState<FileList>();
 
+    const [isStatusChanged, setIsStatusChanged] = useState(false);
+
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const router = useRouter();
@@ -123,6 +125,7 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                 priceInCents: formatToBRL(data.priceInCents),
                 category: data.category,
                 status: data.status,
+                isStatusChanged,
                 attachmentsId: newImage ? undefined : attachamentsId, //se tiver imagem nova, ele fica undefined pois o attachment id será outro; caso contrario, ele mantem e sobe este novamente pro backend
                 files: photoFileList
             });
@@ -175,6 +178,8 @@ export default function EditProduct({ params }: DynamicRouteProps) {
             });
         }
 
+        setIsStatusChanged(false); //zerando ele toda vez que ocorre uma re-renderização
+
     }, [productRecovered, reset]);
 
     return (
@@ -194,11 +199,11 @@ export default function EditProduct({ params }: DynamicRouteProps) {
                     name="status"
                     render={({ field }) => (
                         <div className="flex gap-3 mr-4 items-end">
-                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "cancelled" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => field.onChange(field.value === "available" ? field.value = "sold" : field.value === "sold" ? field.value = "available" : field.value = "cancelled")}>
+                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "cancelled" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => { setIsStatusChanged(true); field.onChange(field.value === "available" ? field.value = "sold" : field.value === "sold" ? field.value = "available" : field.value = "cancelled") }}>
                                 <HugeiconsIcon icon={Tick02Icon} width={20} height={20} className="text-orange-base" />
                                 {field.value === "sold" ? "Marcar como disponível" : "Marcar como vendido"}
                             </div>
-                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "sold" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => field.onChange(field.value === "available" ? field.value = "cancelled" : field.value === "cancelled" ? field.value = "available" : field.value)}>
+                            <div className={`flex gap-2 text-orange-base font-(family-name:--font-dm-sans) ${field.value === "sold" ? "opacity-70 cursor-not-allowed" : "opacity-100 cursor-pointer"}`} onClick={() => { setIsStatusChanged(true); field.onChange(field.value === "available" ? field.value = "cancelled" : field.value === "cancelled" ? field.value = "available" : field.value) }}>
                                 <HugeiconsIcon icon={UnavailableIcon} width={20} height={20} className="text-orange-base" />
                                 {field.value === "cancelled" ? 'Ativar anuncio' : 'Desativar anúncio'}
                             </div>

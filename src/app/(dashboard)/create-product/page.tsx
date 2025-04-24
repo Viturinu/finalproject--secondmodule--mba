@@ -13,6 +13,7 @@ import { formatToBRL } from "@/utils/format-brl-price";
 import { SelectCategory } from "../components/select-category";
 import { createProduct } from "@/app/api/create-product";
 import Image from "next/image";
+import { ImageCropper } from "@/app/components/image-cropper";
 
 export interface categoryItem {
     id: string;
@@ -37,7 +38,8 @@ export type CreateProductFormType = z.infer<typeof ProductFormSchema>;
 
 export default function CreateProduct() {
 
-    const [photoFileList, setPhotoFileList] = useState<FileList>();
+    const [showCropper, setShowCropper] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -73,9 +75,25 @@ export default function CreateProduct() {
         setValue("priceInCents", formatted);
     }
 
+    function handleCropComplete(blob: Blob) { //recebe o Blob criado lá  no getCropped
+        const croppedFile = new File([blob], "cropped.jpg", { type: "image/jpeg" }); //cria o arquivo com esse blob e armazena em croppedFile
+
+        const fileList = { //cria uma FileList, igual a do navegador (quando selecionamos uma imagem ele manda um FileList, e pegamos essa imagem na posição FileList [0] )
+            0: croppedFile,
+            length: 1,
+            item: (index: number) => croppedFile,
+        } as unknown as FileList;
+
+        setValue("files", fileList); //seta lá no useForm
+        setPreviewUrl(URL.createObjectURL(croppedFile)); //seta também no setPreviewUrl
+        setShowCropper(false);
+    }
+
     function handlePreLoadImage(files: FileList) { //aqui ele vai carregar a imagem selecionada pelo usuário, apenas na screen, não está subindo ainda
         const url = URL.createObjectURL(files[0]); //aqui é o File do FileList que é necessario pra carregar o object url
-        setPreviewUrl(url); //pra atualizar a imagem do produto    
+        setImageToCrop(url);
+        setShowCropper(true);
+        setPreviewUrl(url); //pra atualizar a imagem do produto    - mas atualiza ali em cima também, na conclusão do corte (quando recebe a imagem cropped) 
     }
 
     function handleCreateProduct(data: CreateProductFormType) {
@@ -133,7 +151,7 @@ export default function CreateProduct() {
                 <div className="flex relative w-[30vw] h-104 rounded-3xl bg-shape justify-center items-center cursor-pointer overflow-hidden">
                     {
                         previewUrl ?
-                            <Image src={previewUrl ?? previewUrl} alt="Imagem do produto a ser editado" fill style={{ objectFit: 'cover' }}
+                            <Image src={previewUrl ?? previewUrl} alt="Imagem do produto a ser editado" fill style={{ objectFit: 'fill' }}
                             />
                             : (
                                 <div className="flex flex-col gap-4 items-center ">
@@ -142,6 +160,13 @@ export default function CreateProduct() {
                                 </div>
                             )
                     }
+                    {showCropper && imageToCrop && (
+                        <ImageCropper
+                            image={imageToCrop}
+                            onCancel={() => setShowCropper(false)}
+                            onCrop={handleCropComplete}
+                        />
+                    )}
                     <input
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/webp"
