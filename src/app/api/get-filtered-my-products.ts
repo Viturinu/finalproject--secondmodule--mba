@@ -37,6 +37,8 @@ export async function getMyFilteredProducts({ searchTerm, statusFilter }: Search
 
   const response = await api.get<GetMyFilteredProductsResponse>("/products/me");
 
+  console.log(searchTerm + " e " + statusFilter);
+
   const filteredProducts = response?.data.products.filter((product) => {
     const matchesTitle = searchTerm === "" ? true : product.title.toLowerCase().includes(searchTerm.toLowerCase()); //retorna true pra matchesTitle se conferir a condicional
     const matchesStatus = statusFilter === "" ? true : product.status.includes(statusFilter); //retorna true pra matchesTitle se conferir a condicional

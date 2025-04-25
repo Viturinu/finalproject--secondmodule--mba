@@ -28,12 +28,12 @@ export function SelectStatus({ status, onChange }: SelectCategoryProps) {
             <Select onValueChange={onChange} value={status}>
                 <SelectTrigger className="w-full mt-3 p-0 border-0 outline-0 ">
                     <div className="flex h-12 m-0 pr-2 items-start mt-3 outline-0 justify-between border-b-0.5 border-gray-300 ">
-                        <span className="font-(family-name:--font-poppins-sans) text-gray-900 text-[17px]">
+                        <span className="font-(family-name:--font-poppins-sans) text-gray-900 text-[16px]">
                             <SelectValue placeholder="Status" className="placeholder:text-gray-400 text-gray-800" />
                         </span>
                     </div>
                 </SelectTrigger>
-                <SelectContent className="font-(family-name:--font-poppins-sans) text-gray-400 text-[17px] outline-0 focus:outline-0">
+                <SelectContent className="font-(family-name:--font-poppins-sans) text-gray-400 outline-0 focus:outline-0">
                     <SelectItem key={Status.Available} value={Status.Available}>
                         Disponível
                     </SelectItem>
